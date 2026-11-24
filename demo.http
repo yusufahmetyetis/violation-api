@@ -67,7 +67,7 @@ Content-Type: application/json
 
 {"plate": "35C0001", "date": "2026-11-20", "amount": 40.00}
 
-### 7c) ADMIN ile ekleme → 201  (sonra H2: SELECT * FROM violations)
+### 7c) ADMIN ile ekleme → 201  (sonra psql: SELECT * FROM violations)
 POST http://localhost:8080/api/violations
 Authorization: Bearer {{adminToken}}
 Content-Type: application/json
