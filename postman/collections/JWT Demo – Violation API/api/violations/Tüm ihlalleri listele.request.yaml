@@ -1,0 +1,12 @@
+$kind: http-request
+description: "**Rol:** OPERATOR, ADMIN"
+url: "{{baseUrl}}/api/violations"
+method: GET
+headers:
+  Accept: application/json
+body:
+  type: text
+  content: ""
+settings: {}
+examples: ./.resources/Tüm ihlalleri listele.resources/examples
+order: 1000

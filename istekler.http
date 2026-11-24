@@ -1,0 +1,292 @@
+###############################################################################
+#  JWT + Rol Tabanlı Yetkilendirme Demosu (H2, Spring Security 7)
+#
+#  Kullanım:
+#   - Uygulamayı başlat, dosyayı YUKARIDAN AŞAĞI çalıştır.
+#   - "Run All" ile çalıştırınca her isteğin altındaki client.test sonucu
+#     Services panelinde ✔ / ✘ olarak görünür.
+#   - Token süresi 15 dk. Süre dolarsa 0) HAZIRLIK bölümünü tekrar çalıştır.
+#
+#  Kullanıcılar (data.sql):
+#   admin    / admin123     → ADMIN
+#   operator / operator123  → OPERATOR
+#   user     / user123      → USER  (plaka 34A0261 → ihlal 1 ve 4)
+#   pasif    / pasif123     → USER  (enabled = false)
+###############################################################################
+
+
+###############################################################################
+# 0) HAZIRLIK: üç rol için token al (Senaryo 2: doğru login → 200 + token)
+###############################################################################
+
+### [2] Login: admin → 200 + token
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "admin123"}
+
+> {%
+    client.test("200 + token", () => {
+        client.assert(response.status === 200, "status: " + response.status);
+        client.assert(response.body.accessToken, "token yok");
+    });
+    client.global.set("adminToken", response.body.accessToken);
+%}
+
+### [2] Login: operator → 200 + token
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"username": "operator", "password": "operator123"}
+
+> {%
+    client.test("200 + token", () => client.assert(response.status === 200, "status: " + response.status));
+    client.global.set("operatorToken", response.body.accessToken);
+%}
+
+### [2] Login: user → 200 + token
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"username": "user", "password": "user123"}
+
+> {%
+    client.test("200 + token", () => client.assert(response.status === 200, "status: " + response.status));
+    client.global.set("userToken", response.body.accessToken);
+%}
+
+
+###############################################################################
+# 1) PUBLIC: kimlik gerekmez
+###############################################################################
+
+### [1] Public endpoint, token yok → 200 "ok"
+GET http://localhost:8080/api/public/health
+
+> {% client.test("200", () => client.assert(response.status === 200, "status: " + response.status)); %}
+
+
+###############################################################################
+# 2) KİMLİK DOĞRULAMA HATALARI → 401
+###############################################################################
+
+### [3] Yanlış parola → 401 {"message":"Kullanıcı adı veya parola hatalı"}
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "yanlis"}
+
+> {% client.test("401 + JSON", () => {
+    client.assert(response.status === 401, "status: " + response.status);
+    client.assert(response.body.message, "message alanı yok");
+}); %}
+
+### [4] Pasif kullanıcı → 401 (yanlış parola ile AYNI mesaj: dışarıya ipucu yok)
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"username": "pasif", "password": "pasif123"}
+
+> {% client.test("401 + JSON", () => {
+    client.assert(response.status === 401, "status: " + response.status);
+    client.assert(response.body.message, "message alanı yok");
+}); %}
+
+### [5] Token yok → 401 {"message":"Kimlik doğrulama gerekli"}, header: WWW-Authenticate: Bearer
+GET http://localhost:8080/api/violations
+
+> {% client.test("401 + JSON", () => {
+    client.assert(response.status === 401, "status: " + response.status);
+    client.assert(response.body.message, "message alanı yok");
+}); %}
+
+### [6] İmzası bozulmuş token (sona tek harf eklendi) → 401 "Token geçersiz: ..."
+GET http://localhost:8080/api/violations
+Authorization: Bearer {{adminToken}}x
+
+> {% client.test("401 + JSON", () => {
+    client.assert(response.status === 401, "status: " + response.status);
+    client.assert(response.body.message, "message alanı yok");
+}); %}
+
+### [7] Süresi dolmuş token → 401 "Token geçersiz: ... Jwt expired at 2026-11-18T09:00:00Z"
+#  Bu token aynı secret ile imzalanmış, imzası GEÇERLİ; tek kusuru exp'in geçmişte olması.
+#  (sub: user, roles: [USER], exp: 2026-11-18T09:00:00Z). jwt.io'da açıp gösterebilirsin.
+#  "Invalid signature" görürsen application.yaml'daki jwt.secret farklı demektir.
+GET http://localhost:8080/api/violations/mine
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqd3QtZGVtbyIsInN1YiI6InVzZXIiLCJleHAiOjE3OTQ5OTI0MDAsImlhdCI6MTc5NDk5MTUwMCwianRpIjoiZXhwaXJlZC1kZW1vLXRva2VuIiwicm9sZXMiOlsiVVNFUiJdfQ.QxSNFj7cV4rs5dqA8chXKIkxOuRel13ige8jMPZTUHQ
+
+> {% client.test("401 (expired)", () => {
+    client.assert(response.status === 401, "status: " + response.status);
+    client.assert(response.body.message, "message alanı yok");
+}); %}
+
+
+###############################################################################
+# 3) ROL KURALLARI (URL seviyesi) → 403 / 200 / 201 / 204
+###############################################################################
+
+### [8] USER ile tüm liste → 403 {"message":"Bu işlem için yetkiniz yok"}
+GET http://localhost:8080/api/violations
+Authorization: Bearer {{userToken}}
+
+> {% client.test("403 + JSON", () => {
+    client.assert(response.status === 403, "status: " + response.status);
+    client.assert(response.body.message, "message alanı yok");
+}); %}
+
+### [8+] OPERATOR ile tüm liste → 200 (karşılaştırma için)
+GET http://localhost:8080/api/violations
+Authorization: Bearer {{operatorToken}}
+
+> {% client.test("200", () => client.assert(response.status === 200, "status: " + response.status)); %}
+
+### [9a] OPERATOR ile ekleme → 403
+POST http://localhost:8080/api/violations
+Authorization: Bearer {{operatorToken}}
+Content-Type: application/json
+
+{"plate": "35C0001", "date": "2026-11-19", "amount": 40.00}
+
+> {% client.test("403", () => client.assert(response.status === 403, "status: " + response.status)); %}
+
+### [9b] ADMIN ile ekleme → 201 + Location header (yeni id kaydedilir)
+POST http://localhost:8080/api/violations
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"plate": "35C0001", "date": "2026-11-19", "amount": 40.00}
+
+> {%
+    client.test("201", () => client.assert(response.status === 201, "status: " + response.status));
+    client.global.set("newId", response.body.id);
+%}
+
+### [9c] OPERATOR ile silme → 403
+DELETE http://localhost:8080/api/violations/{{newId}}
+Authorization: Bearer {{operatorToken}}
+
+> {% client.test("403", () => client.assert(response.status === 403, "status: " + response.status)); %}
+
+### [9d] ADMIN ile silme → 204
+DELETE http://localhost:8080/api/violations/{{newId}}
+Authorization: Bearer {{adminToken}}
+
+> {% client.test("204", () => client.assert(response.status === 204, "status: " + response.status)); %}
+
+### [9e] ADMIN ile aynı kaydı tekrar silme → 404
+DELETE http://localhost:8080/api/violations/{{newId}}
+Authorization: Bearer {{adminToken}}
+
+> {% client.test("404", () => client.assert(response.status === 404, "status: " + response.status)); %}
+
+### [ADMIN] USER ile kullanıcı listesi → 403
+GET http://localhost:8080/api/admin/users
+Authorization: Bearer {{userToken}}
+
+> {% client.test("403", () => client.assert(response.status === 403, "status: " + response.status)); %}
+
+### [ADMIN] ADMIN ile kullanıcı listesi → 200 (password alanı YOK)
+GET http://localhost:8080/api/admin/users
+Authorization: Bearer {{adminToken}}
+
+> {% client.test("200", () => client.assert(response.status === 200, "status: " + response.status)); %}
+
+
+###############################################################################
+# 4) SAHİPLİK KONTROLÜ (@PreAuthorize, metot seviyesi)
+###############################################################################
+
+### [10a] USER kendi ihlalleri → 200 (id 1 ve 4, plaka 34A0261)
+GET http://localhost:8080/api/violations/mine
+Authorization: Bearer {{userToken}}
+
+> {% client.test("200", () => client.assert(response.status === 200, "status: " + response.status)); %}
+
+### [10b] USER kendi kaydı → 200
+GET http://localhost:8080/api/violations/1
+Authorization: Bearer {{userToken}}
+
+> {% client.test("200", () => client.assert(response.status === 200, "status: " + response.status)); %}
+
+### [10] USER başkasının kaydı (34B0102) → 403 JSON
+GET http://localhost:8080/api/violations/2
+Authorization: Bearer {{userToken}}
+
+> {% client.test("403 + JSON", () => {
+    client.assert(response.status === 403, "status: " + response.status);
+    client.assert(response.body.message, "message alanı yok");
+}); %}
+
+### [10c] OPERATOR aynı kayıt → 200
+GET http://localhost:8080/api/violations/2
+Authorization: Bearer {{operatorToken}}
+
+> {% client.test("200", () => client.assert(response.status === 200, "status: " + response.status)); %}
+
+### [10d] OPERATOR /mine → 403 (sadece USER rolü)
+GET http://localhost:8080/api/violations/mine
+Authorization: Bearer {{operatorToken}}
+
+> {% client.test("403", () => client.assert(response.status === 403, "status: " + response.status)); %}
+
+
+###############################################################################
+# [11] TUTARLI JSON HATA GÖVDESİ
+#  3, 4, 5, 6, 7, 8, 10 ve 12 numaralı isteklerin gövdesi AYNI formatta olmalı:
+#  {"timestamp":"...","status":400|401|403,"error":"...","message":"...","path":"..."}  (+ 400'de "errors")
+#  Yukarıdaki "+ JSON" testleri message alanının varlığını kontrol ediyor.
+###############################################################################
+
+
+###############################################################################
+# 5) DOĞRULAMA HATALARI → 400 (alan bazlı "errors" ile)
+###############################################################################
+
+### [12a] ADMIN eksik/hatalı alanlarla ekleme → 400, errors: plate/date/amount
+POST http://localhost:8080/api/violations
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"plate": "", "amount": -5}
+
+> {% client.test("400 + errors", () => {
+    client.assert(response.status === 400, "status: " + response.status);
+    client.assert(response.body.errors && response.body.errors.plate, "errors.plate yok");
+}); %}
+
+### [12b] ADMIN yanlış tarih formatı → 400 "İstek gövdesi okunamadı"
+POST http://localhost:8080/api/violations
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"plate": "35C0001", "date": "20.11.2026", "amount": 40.00}
+
+> {% client.test("400", () => client.assert(response.status === 400, "status: " + response.status)); %}
+
+### [12c] Login boş alanlar → 400 (401 değil: kimlik denenmedi bile)
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"username": ""}
+
+> {% client.test("400", () => client.assert(response.status === 400, "status: " + response.status)); %}
+
+
+###############################################################################
+# 6) PUBLIC ADRESLERDE ESKİ TOKEN YOK SAYILIR
+#  Postman gibi araçlar ya da tarayıcıda kalmış eski token yüzünden
+#  kullanıcı login olamaz hâle gelmesin. Korumalı adreslerde davranış aynı (bkz. [7]).
+###############################################################################
+
+### [13] Süresi dolmuş token ile login → 200 (token'a bakılmaz, login zaten public)
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqd3QtZGVtbyIsInN1YiI6InVzZXIiLCJleHAiOjE3OTQ5OTI0MDAsImlhdCI6MTc5NDk5MTUwMCwianRpIjoiZXhwaXJlZC1kZW1vLXRva2VuIiwicm9sZXMiOlsiVVNFUiJdfQ.QxSNFj7cV4rs5dqA8chXKIkxOuRel13ige8jMPZTUHQ
+
+{"username": "admin", "password": "admin123"}
+
+> {% client.test("200 + token", () => {
+    client.assert(response.status === 200, "status: " + response.status);
+    client.assert(response.body.accessToken, "token yok");
+}); %}

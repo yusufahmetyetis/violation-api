@@ -1,0 +1,10 @@
+# Use this workspace to collaborate
+workspace:
+  id: 1ae56ef1-fbaa-4212-835d-2af35bd0e286
+
+localResources:
+  specs:
+    - ../postman/specs/JWT Demo – Violation API/index.json
+resourceNameMappings:
+  specs:
+    - ../postman/specs/JWT Demo – Violation API/index.json: JWT Demo – Violation API

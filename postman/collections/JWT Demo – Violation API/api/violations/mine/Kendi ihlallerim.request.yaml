@@ -1,0 +1,12 @@
+$kind: http-request
+description: "**Rol:** USER. Token sahibinin plakasına kayıtlı ihlaller döner."
+url: "{{baseUrl}}/api/violations/mine"
+method: GET
+headers:
+  Accept: application/json
+body:
+  type: text
+  content: ""
+settings: {}
+examples: ./.resources/Kendi ihlallerim.resources/examples
+order: 1000

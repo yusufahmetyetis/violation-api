@@ -1,0 +1,12 @@
+$kind: http-request
+description: "**Rol:** ADMIN"
+url: "{{baseUrl}}/api/admin/users"
+method: GET
+headers:
+  Accept: application/json
+body:
+  type: text
+  content: ""
+settings: {}
+examples: ./.resources/Kullanıcıları listele.resources/examples
+order: 1000

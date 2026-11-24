@@ -1,0 +1,30 @@
+$kind: http-request
+description: "**Rol:** OPERATOR, ADMIN her kaydı görür. USER yalnızca kendi plakasına ait kaydı görür; başkasının kaydı ya da var olmayan bir id için 403 alır (kaydın varlığı sızdırılmaz)."
+url: "{{baseUrl}}/api/violations/:id"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: id
+    value: "1"
+    disabled: false
+    description: İhlal id
+    $type: |-
+      {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      }
+body:
+  type: text
+  content: ""
+settings: {}
+examples: ./.resources/Tek ihlal getir.resources/examples
+order: 1000

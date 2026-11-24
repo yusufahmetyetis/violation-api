@@ -1,0 +1,81 @@
+$kind: http-example
+name: Eksik/hatalı alan (ayrıntı `errors` içinde)
+request:
+  url: "{{baseUrl}}/api/violations"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  body:
+    type: json
+    content: |-
+      {
+        "amount": 40,
+        "date": "2026-11-20",
+        "plate": "35C0001"
+      }
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "timestamp": "2026-11-23T09:00:00Z",
+        "status": 403,
+        "error": "Forbidden",
+        "message": "Bu işlem için yetkiniz yok",
+        "path": "/api/violations",
+        "errors": {
+          "plate": "plaka boş olamaz"
+        }
+      }
+    $type: |-
+      {
+        "description": "400/401/403 ve login hatalarında dönen ortak gövde",
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "example": "2026-11-23T09:00:00Z",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "integer",
+            "example": 403,
+            "format": "int32"
+          },
+          "error": {
+            "type": "string",
+            "example": "Forbidden"
+          },
+          "message": {
+            "type": "string",
+            "example": "Bu işlem için yetkiniz yok"
+          },
+          "path": {
+            "type": "string",
+            "example": "/api/violations"
+          },
+          "errors": {
+            "type": "object",
+            "example": {
+              "plate": "plaka boş olamaz"
+            },
+            "description": "Sadece 400'de: alan → hata mesajı",
+            "additionalProperties": {
+              "type": "string",
+              "description": "Sadece 400'de: alan → hata mesajı",
+              "example": "{\"plate\":\"plaka boş olamaz\"}"
+            }
+          }
+        }
+      }
+order: 2000

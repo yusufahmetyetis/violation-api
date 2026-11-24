@@ -1,0 +1,76 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/admin/users"
+  method: GET
+  headers:
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  body:
+    type: text
+    content: ""
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "username": "user",
+          "enabled": true,
+          "plate": "34A0261",
+          "roles": [
+            "USER"
+          ]
+        },
+        {
+          "username": "user",
+          "enabled": true,
+          "plate": "34A0261",
+          "roles": [
+            "USER"
+          ]
+        }
+      ]
+    $type: |-
+      {
+        "type": "array",
+        "items": {
+          "description": "Kullanıcı özeti (parola hash'i bilinçli olarak yok)",
+          "type": "object",
+          "properties": {
+            "username": {
+              "type": "string",
+              "example": "user"
+            },
+            "enabled": {
+              "type": "boolean",
+              "example": true,
+              "description": "false ise giriş yapamaz"
+            },
+            "plate": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "example": "34A0261",
+              "description": "Sadece USER rolünde dolu"
+            },
+            "roles": {
+              "type": "array",
+              "example": [
+                "USER"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+order: 1000

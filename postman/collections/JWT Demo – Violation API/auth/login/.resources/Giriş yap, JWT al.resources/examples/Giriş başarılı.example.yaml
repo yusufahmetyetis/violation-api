@@ -1,0 +1,56 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/auth/login"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  body:
+    type: json
+    content: |-
+      {
+        "password": "admin123",
+        "username": "admin"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+        "tokenType": "Bearer",
+        "expiresIn": 900
+      }
+    $type: |-
+      {
+        "description": "Başarılı girişte dönen token",
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiJ9...",
+            "description": "JWT. Swagger'da sağ üstteki Authorize'a yapıştırın (Bearer yazmadan)."
+          },
+          "tokenType": {
+            "type": "string",
+            "example": "Bearer",
+            "description": "Authorization header'ında kullanılacak şema"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "example": 900,
+            "description": "Geçerlilik süresi (saniye)",
+            "format": "int64"
+          }
+        }
+      }
+order: 1000

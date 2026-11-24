@@ -1,0 +1,49 @@
+$kind: http-request
+description: |
+  Demo kullanıcıları:
+  | kullanıcı | parola | rol |
+  |---|---|---|
+  | admin | admin123 | ADMIN |
+  | operator | operator123 | OPERATOR |
+  | user | user123 | USER (plaka 34A0261) |
+  | pasif | pasif123 | USER, hesap pasif → 401 |
+url: "{{baseUrl}}/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: json
+  content: |-
+    {
+      "password": "admin123",
+      "username": "admin"
+    }
+  $type: |-
+    {
+      "description": "Giriş bilgileri",
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "minLength": 1,
+          "example": "admin"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 1,
+          "example": "admin123"
+        }
+      },
+      "required": [
+        "password",
+        "username"
+      ]
+    }
+scripts:
+  - type: afterResponse
+    code: pm.collectionVariables.set("bearerToken", pm.response.json().accessToken);
+    language: text/javascript
+settings: {}
+examples: ./.resources/Giriş yap, JWT al.resources/examples
+order: 1000

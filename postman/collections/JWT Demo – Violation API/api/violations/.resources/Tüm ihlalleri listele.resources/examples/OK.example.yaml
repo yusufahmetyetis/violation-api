@@ -1,0 +1,68 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/violations"
+  method: GET
+  headers:
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  body:
+    type: text
+    content: ""
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "amount": 12.36,
+          "date": "2026-11-11",
+          "id": 1,
+          "plate": "34A0261"
+        },
+        {
+          "amount": 12.36,
+          "date": "2026-11-11",
+          "id": 1,
+          "plate": "34A0261"
+        }
+      ]
+    $type: |-
+      {
+        "type": "array",
+        "items": {
+          "description": "Trafik ihlali kaydı",
+          "type": "object",
+          "properties": {
+            "plate": {
+              "type": "string",
+              "example": "34A0261",
+              "description": "Araç plakası"
+            },
+            "date": {
+              "type": "string",
+              "example": "2026-11-11",
+              "description": "İhlal tarihi (ISO-8601, yyyy-MM-dd)",
+              "format": "date"
+            },
+            "amount": {
+              "type": "number",
+              "example": 12.36,
+              "description": "Ceza tutarı (TL, 2 ondalık)"
+            }
+          },
+          "required": [
+            "amount",
+            "date",
+            "id",
+            "plate"
+          ]
+        }
+      }
+order: 1000

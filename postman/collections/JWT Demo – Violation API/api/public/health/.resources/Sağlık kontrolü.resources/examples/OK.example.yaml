@@ -1,0 +1,26 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/public/health"
+  method: GET
+  headers:
+    - key: Accept
+      value: text/plain
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  body:
+    type: text
+    content: ""
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: text/plain
+  body:
+    type: text
+    content: string
+    $type: |-
+      {
+        "type": "string"
+      }
+order: 1000

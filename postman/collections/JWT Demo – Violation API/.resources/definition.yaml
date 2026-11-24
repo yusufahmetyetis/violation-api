@@ -1,0 +1,25 @@
+$kind: collection
+description: |
+  Trafik ihlali kayıtları için JWT korumalı örnek API.
+
+  **Nasıl denenir?**
+  1. **Auth → POST /auth/login** ile giriş yapın (kullanıcılar endpoint açıklamasında).
+  2. Dönen `accessToken` değerini sağ üstteki **Authorize** butonuna yapıştırın.
+  3. İstediğiniz endpoint'te **Try it out → Execute**. Cevabın üstünde hazır **curl** komutu görünür.
+
+  **Roller:** ADMIN her şeyi yapar · OPERATOR okur · USER yalnızca kendi plakasının kayıtlarını görür.
+
+  **Sözleşme dosyası:** `/v3/api-docs` (JSON) veya `/v3/api-docs.yaml`. Postman'e import edilebilir,
+  openapi-generator ile istemci kodu üretilebilir.
+
+  Tüm hatalar `ErrorResponse` formatında döner: 400 eksik/hatalı alan, 401 token yok/geçersiz/süresi dolmuş,
+  403 rol yetersiz veya kayıt size ait değil.
+variables:
+  baseUrl: http://localhost:8080
+  bearerToken: ""
+auth:
+  - id: d8723f94-8e6f-467e-8193-439c23c5987a
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{bearerToken}}"

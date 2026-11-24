@@ -1,0 +1,91 @@
+###############################################################################
+#  DEMO AKIŞI (~3 dk) — her isteği yeşil ▶ ile TEK TEK çalıştır
+#  Numaralar demo dokümanındaki adımlarla aynı.
+#  Tam test seti için: istekler.http (Run All)
+#  Aynı istekleri tarayıcıdan denemek ve curl almak için: http://localhost:8080/swagger-ui.html
+###############################################################################
+
+
+### 1) Public sağlık kontrolü → 200 "ok"
+GET http://localhost:8080/api/public/health
+
+
+### 2) Token yok → 401 JSON (gövdedeki message'ı göster)
+GET http://localhost:8080/api/violations
+
+
+### 3) Login: admin → 200 + token (token'ı jwt.io'ya yapıştır)
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "admin123"}
+
+> {% client.global.set("adminToken", response.body.accessToken); %}
+
+
+### 4) Login: yanlış parola → 401 "Kullanıcı adı veya parola hatalı"
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "yanlis"}
+
+
+### 5a) Login: user → 200 + token
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"username": "user", "password": "user123"}
+
+> {% client.global.set("userToken", response.body.accessToken); %}
+
+### 5b) USER ile tüm liste → 403 (401 kimlik, 403 yetki)
+GET http://localhost:8080/api/violations
+Authorization: Bearer {{userToken}}
+
+
+### 6a) USER kendi ihlalleri → 200 (sadece 34A0261: id 1 ve 4)
+GET http://localhost:8080/api/violations/mine
+Authorization: Bearer {{userToken}}
+
+### 6b) USER başkasının kaydı (34B0102) → 403 (karar veriden)
+GET http://localhost:8080/api/violations/2
+Authorization: Bearer {{userToken}}
+
+
+### 7a) Login: operator → 200 + token
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"username": "operator", "password": "operator123"}
+
+> {% client.global.set("operatorToken", response.body.accessToken); %}
+
+### 7b) OPERATOR ile ekleme → 403 (okuyabilir, yazamaz)
+POST http://localhost:8080/api/violations
+Authorization: Bearer {{operatorToken}}
+Content-Type: application/json
+
+{"plate": "35C0001", "date": "2026-11-20", "amount": 40.00}
+
+### 7c) ADMIN ile ekleme → 201  (sonra H2: SELECT * FROM violations)
+POST http://localhost:8080/api/violations
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"plate": "35C0001", "date": "2026-11-20", "amount": 40.00}
+
+> {% client.global.set("newId", response.body.id); %}
+
+### 7d) ADMIN ile silme → 204
+DELETE http://localhost:8080/api/violations/{{newId}}
+Authorization: Bearer {{adminToken}}
+
+
+### 8) İmzası bozuk token (sona tek harf) → 401 "Invalid signature"
+GET http://localhost:8080/api/violations
+Authorization: Bearer {{adminToken}}x
+
+
+### 9) Süresi dolmuş token (imzası geçerli, exp: 2026-11-18T09:00Z) → 401 "Jwt expired"
+GET http://localhost:8080/api/violations/mine
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqd3QtZGVtbyIsInN1YiI6InVzZXIiLCJleHAiOjE3OTQ5OTI0MDAsImlhdCI6MTc5NDk5MTUwMCwianRpIjoiZXhwaXJlZC1kZW1vLXRva2VuIiwicm9sZXMiOlsiVVNFUiJdfQ.QxSNFj7cV4rs5dqA8chXKIkxOuRel13ige8jMPZTUHQ

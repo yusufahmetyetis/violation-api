@@ -1,0 +1,48 @@
+$kind: http-request
+description: "**Rol:** ADMIN. Başarılıysa 201 döner; yeni kaydın adresi `Location` header'ındadır."
+url: "{{baseUrl}}/api/violations"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": 40,
+      "date": "2026-11-20",
+      "plate": "35C0001"
+    }
+  $type: |-
+    {
+      "description": "Yeni ihlal kaydı",
+      "type": "object",
+      "properties": {
+        "plate": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 15,
+          "example": "35C0001",
+          "description": "Araç plakası"
+        },
+        "date": {
+          "type": "string",
+          "example": "2026-11-20",
+          "description": "İhlal tarihi (ISO-8601, yyyy-MM-dd)",
+          "format": "date"
+        },
+        "amount": {
+          "type": "number",
+          "example": 40,
+          "description": "Ceza tutarı (TL, en fazla 2 ondalık)"
+        }
+      },
+      "required": [
+        "amount",
+        "date",
+        "plate"
+      ]
+    }
+settings: {}
+examples: ./.resources/Yeni ihlal ekle.resources/examples
+order: 2000

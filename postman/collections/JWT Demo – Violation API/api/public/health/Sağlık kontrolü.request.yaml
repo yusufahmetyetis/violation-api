@@ -1,0 +1,12 @@
+$kind: http-request
+description: Uygulama ayaktaysa `ok` döner. Token gerekmez.
+url: "{{baseUrl}}/api/public/health"
+method: GET
+headers:
+  Accept: text/plain
+body:
+  type: text
+  content: ""
+settings: {}
+examples: ./.resources/Sağlık kontrolü.resources/examples
+order: 1000
