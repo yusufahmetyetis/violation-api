@@ -3,27 +3,28 @@ spring:
     name: jwt-demo
 
   datasource:
-    # mem = RAM'de. DB_CLOSE_DELAY=-1: bağlantı kapansa da DB uygulama yaşadıkça yaşasın
-    url: jdbc:h2:mem:jwtdemo;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
+    # PostgreSQL docker-compose.yml ile çalışır: önce `docker compose up -d`.
+    # ${DEGISKEN:varsayilan} → ortam değişkeni varsa onu, yoksa yerel geliştirme değerini kullan.
+    # DEMO İÇİN: gerçek ortamda DB_PASSWORD mutlaka ortam değişkeninden / secret yöneticisinden gelir.
+    # Port 5433: docker-compose.yml container'ın 5432'sini host'ta 5433'e açıyor.
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:jwtdemo}
+    username: ${DB_USER:jwtdemo}
+    password: ${DB_PASSWORD:jwtdemo}
 
-  h2:
-    console:
-      # SADECE YEREL GELİŞTİRME İÇİN. Gerçek projede/sunucuda asla açık olmamalı:
-      # konsola erişen biri tüm veritabanını okuyup değiştirebilir.
-      enabled: true
-      path: /h2-console
+  flyway:
+    # Tabloları ve demo verileri src/main/resources/db/migration altındaki V1__, V2__... kurar.
+    # Her dosya bir kez çalışır; hangilerinin çalıştığı DB'deki flyway_schema_history tablosunda tutulur.
+    enabled: true
 
   jpa:
     hibernate:
-      ddl-auto: none      # Tabloları Hibernate değil, biz schema.sql ile kuracağız
+      ddl-auto: validate  # Tabloları Flyway kurar; Hibernate sadece entity'ler tabloya uyuyor mu diye kontrol eder
     show-sql: true        # Çalışan SQL'leri logda görelim
     open-in-view: false
 
   sql:
     init:
-      mode: always        # schema.sql / data.sql her açılışta çalışsın (2. aşamada eklenecek)
+      mode: never         # schema.sql / data.sql mekanizması kapalı, bu işi artık Flyway yapıyor
 
 springdoc:
   # Swagger UI:   http://localhost:8080/swagger-ui.html

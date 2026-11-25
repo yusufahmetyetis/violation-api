@@ -54,17 +54,23 @@
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
-		<!-- H2 veritabanı (sadece çalışma zamanında lazım) -->
+		<!-- PostgreSQL JDBC sürücüsü (sadece çalışma zamanında lazım). DB'yi docker-compose.yml ayağa kaldırır -->
 		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- Boot 4: H2 console auto-config artık ayrı modülde -->
+		<!-- Flyway: db/migration altındaki V1__, V2__... dosyalarını sırayla, her biri BİR KEZ çalıştırır -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-h2console</artifactId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
+		</dependency>
+
+		<!-- Flyway 10+ ile her veritabanının desteği ayrı modülde -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 
 		<dependency>

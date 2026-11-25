@@ -1,0 +1,31 @@
+# PostgreSQL'i Docker'da çalıştırır. Uygulamanın kendisi (şimdilik) IntelliJ / mvnw ile çalışır.
+#
+#   docker compose up -d      → DB'yi arka planda başlat
+#   docker compose down       → container'ı sil, VERİ KALIR (volume duruyor)
+#   docker compose down -v    → container'ı VE volume'u sil, veri sıfırlanır
+#                               (sonraki açılışta Flyway V1, V2'yi baştan uygular)
+services:
+  postgres:
+    image: postgres:17
+    container_name: violation-db
+    environment:
+      # DEMO İÇİN: gerçek ortamda parola .env dosyasından / secret yöneticisinden gelir.
+      POSTGRES_DB: jwtdemo
+      POSTGRES_USER: jwtdemo
+      POSTGRES_PASSWORD: jwtdemo
+    ports:
+      # host:container. Host'ta 5433: makinede kurulu yerel bir PostgreSQL 5432'yi kullanıyorsa çakışmasın.
+      - "5433:5432"
+    volumes:
+      # Named volume: veriler container'ın içinde değil, Docker'ın yönettiği "pgdata"
+      # volume'unda durur. Container silinip yeniden oluşturulsa da veri kaybolmaz.
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jwtdemo -d jwtdemo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:

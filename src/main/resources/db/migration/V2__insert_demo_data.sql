@@ -1,3 +1,6 @@
+-- Flyway migration V2: demo verileri. Volume dolu olduğu sürece tekrar çalışmaz,
+-- yani API'den eklenen/silinen kayıtlar yeniden başlatmada korunur.
+
 -- Roller
 INSERT INTO roles (name) VALUES ('ADMIN'), ('OPERATOR'), ('USER');
 

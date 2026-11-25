@@ -36,7 +36,6 @@ public class SecurityConfig {
             "/error",
             "/api/public/**",
             "/auth/**",
-            "/h2-console/**",          // UYARI: sadece yerel geliştirme
             "/v3/api-docs*",           // /v3/api-docs ve /v3/api-docs.yaml (sözleşme dosyası)
             "/v3/api-docs/**",
             "/swagger-ui/**",
@@ -65,8 +64,6 @@ public class SecurityConfig {
                         // /mine ve /{id}: sahiplik kontrolü @PreAuthorize ile
                         .anyRequest().authenticated()
                 )
-                .headers(h -> h.frameOptions(f -> f.sameOrigin()))   // H2 console frame'leri
-
                 // Token HİÇ yoksa / yetki yoksa (URL kuralı ve @PreAuthorize)
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(jsonAuthEntryPoint)
