@@ -43,10 +43,24 @@ Tablolar `src/main/resources/db/migration` altındaki dosyalarla kurulur:
 
 - `V1__create_tables.sql`: tablolar
 - `V2__insert_demo_data.sql`: demo kullanıcılar ve ihlaller
+- `V3__normalize_plates.sql`: mevcut plakaları uygulamanın kuralına getirir (boşluksuz, büyük harf)
 
 Flyway hangi dosyaların çalıştığını DB'deki `flyway_schema_history` tablosunda tutar ve her açılışta sadece **yeni** dosyaları çalıştırır.
 
-**Kural:** Çalışmış bir migration dosyası değiştirilmez (Flyway checksum'ı tutar, değişirse uygulama açılmaz). Değişiklik için yeni dosya yazılır, ör. `V3__add_email_to_users.sql`. Hibernate `ddl-auto: validate` ile çalışır: entity'ler tablolarla uyuşmazsa uygulama açılışta hata verir.
+**Kural:** Çalışmış bir migration dosyası değiştirilmez (Flyway checksum'ı tutar, değişirse uygulama açılmaz). Değişiklik için yeni dosya yazılır, ör. `V4__add_email_to_users.sql`. Hibernate `ddl-auto: validate` ile çalışır: entity'ler tablolarla uyuşmazsa uygulama açılışta hata verir.
+
+## Testler
+
+```bash
+./mvnw test
+```
+
+Sadece **Docker'ın çalışıyor olması** yeterli. `docker compose up` gerekmez. Testler Testcontainers ile kendi geçici PostgreSQL container'larını açar, Flyway migration'larını uygular ve iş bitince container'ı siler. Compose'daki veritabanına (5433) dokunmazlar.
+
+- `SecurityIntegrationTests`: gerçek login → gerçek JWT → gerçek veritabanı. Rol matrisini, sahipliği (USER başkasının kaydına 403 alır), pasif hesabı, süresi dolmuş token'ı, yanlış issuer'ı, plaka normalizasyonunu ve hata formatını test eder.
+- `PlateNormalizationTests`: plaka kuralı için birim testleri (Türkçe locale dahil).
+
+GitHub'da her push'ta ve PR'da aynı testler otomatik olarak çalışır (`.github/workflows/ci.yml`).
 
 ## API'yi başka bir geliştirici nasıl kullanır?
 
@@ -96,6 +110,22 @@ Hatalar tek formatta döner (`ErrorResponse`): **400** eksik/hatalı alan (`erro
 - `istekler.http`: tam test seti, IntelliJ'de *Run All* ile ✔/✘ sonuçları görünür. Eklediği kaydı kendisi sildiği için kalıcı veritabanında tekrar tekrar çalıştırılabilir.
 - Veriyi görmek: `docker exec -it violation-db psql -U jwtdemo -c "SELECT * FROM violations;"`
 
-## Yalnızca demo için olanlar
+## Demo sınırları
 
-Gerçek bir projede şunlar farklı olmalı: JWT secret ve DB parolası `application.yaml` / `docker-compose.yml` yerine ortam değişkeninden/Vault'tan okunur; Swagger UI ve `/v3/api-docs` ya kapatılır ya da yetkiye bağlanır; 401 cevabında token hatasının ayrıntısı verilmez.
+Bu proje bir öğrenme demosu. Aşağıdakiler bilinçli olarak kapsam dışında bırakıldı. Gerçek bir projede her biri ele alınmalı.
+
+**Gizli bilgiler ve ortam ayarları**
+- JWT secret ve DB parolası `application.yaml` / `docker-compose.yml` içinde düz yazılı. Gerçekte ortam değişkeninden ya da bir secret yöneticisinden (Vault vb.) okunur. Uygulama açılırken sadece secret'ın en az 32 byte olup olmadığı kontrol ediliyor.
+- Swagger UI ve `/v3/api-docs` herkese açık. `show-sql: true` sabit. 401 cevabında token hatasının ayrıntısı veriliyor. Bunların hepsi bir `prod` profiliyle kapatılmalı.
+
+**Token yaşam döngüsü**
+- **Logout yok.** Token süresi dolana kadar (15 dk) geçerli kalır.
+- Token, rolleri ve hesabın aktif olup olmadığını üretildiği andaki haliyle taşır. Admin bir kullanıcının rolünü alsa ya da hesabını pasifleştirse bile o kullanıcının elindeki token süresi dolana kadar çalışmaya devam eder.
+- Refresh token yok. Süre dolunca kullanıcı tekrar login olur.
+
+**Kötüye kullanım koruması**
+- Login'de hız sınırı ya da hesap kilitleme yok, yani brute-force denemelerine açık. Demo parolaları (`admin123` vb.) bilerek basit tutuldu.
+
+**Ölçeklenme**
+- Liste endpoint'lerinde sayfalama yok. `GET /api/violations` bütün tabloyu döner.
+- `GET /api/admin/users` her kullanıcının rolleri için ayrı bir sorgu çalıştırıyor (N+1). Az kullanıcıyla sorun değil, ama gerçek veride tek bir join sorgusu gerekir.

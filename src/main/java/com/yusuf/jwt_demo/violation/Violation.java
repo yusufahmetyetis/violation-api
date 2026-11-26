@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Locale;
 
 @Entity
 @Table(name = "violations")          // schema.sql'deki tablo adı
@@ -34,9 +35,15 @@ public class Violation {
     protected Violation() { }          // Hibernate için zorunlu, dışarıdan kullanılmasın diye protected
 
     public Violation(String plate, LocalDate date, BigDecimal amount) {   // POST'ta kullanılıyor
-        this.plate = plate;
+        this.plate = normalizePlate(plate);
         this.date = date;
         this.amount = amount;
+    }
+
+    // "34 a 0261 " → "34A0261". Sahiplik kontrolü plakayı birebir karşılaştırdığı için kayıt hep tek biçimde tutulur.
+    // Locale.ROOT: Türkçe locale'de "i".toUpperCase() → "İ" olur, plaka karşılaştırması bozulur.
+    public static String normalizePlate(String plate) {
+        return plate == null ? null : plate.replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
     }
 
     // Jackson JSON'a çevirirken getter'ları kullanır

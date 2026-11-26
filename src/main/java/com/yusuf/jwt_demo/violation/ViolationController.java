@@ -92,7 +92,7 @@ public class ViolationController {
             description = "**Rol:** USER. Token sahibinin plakasına kayıtlı ihlaller döner.")
     public List<Violation> mine(Authentication auth) {
         String plate = ownership.plateOf(auth);
-        return plate == null ? List.of() : repo.findByPlate(plate);
+        return plate == null ? List.of() : repo.findByPlate(Violation.normalizePlate(plate));
     }
 
     // OPERATOR/ADMIN: her kayıt. USER: sadece kendi kaydı, değilse 403

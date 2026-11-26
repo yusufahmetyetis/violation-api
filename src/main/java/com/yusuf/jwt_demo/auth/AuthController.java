@@ -1,6 +1,7 @@
 package com.yusuf.jwt_demo.auth;
 
 import com.yusuf.jwt_demo.config.ErrorResponse;
+import com.yusuf.jwt_demo.config.JwtConfig;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -84,7 +85,7 @@ public class AuthController {
 
         Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("jwt-demo")
+                .issuer(JwtConfig.ISSUER)                // iss: kim bastı (decoder bunu şart koşar)
                 .subject(auth.getName())                 // sub: kim
                 .issuedAt(now)                           // iat: ne zaman
                 .expiresAt(now.plusSeconds(expSeconds))  // exp: ne zamana kadar geçerli

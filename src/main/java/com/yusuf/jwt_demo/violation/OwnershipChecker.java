@@ -24,7 +24,7 @@ public class OwnershipChecker {
     public boolean ownsViolation(Long violationId, Authentication auth) {
         String plate = plateOf(auth);
         return plate != null && violationRepo.findById(violationId)
-                .map(v -> plate.equals(v.getPlate()))
+                .map(v -> Violation.normalizePlate(plate).equals(v.getPlate()))   // kayıtlar normalize tutuluyor
                 .orElse(false);   // kayıt yoksa da false → 403 (var/yok bilgisini sızdırmayalım)
     }
 }

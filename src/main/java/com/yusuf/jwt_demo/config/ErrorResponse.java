@@ -6,8 +6,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.Map;
 
-// Tüm hata cevapları (400/401/403) bu tek formatta döner; Swagger'daki şema da bu.
-@Schema(description = "400/401/403 ve login hatalarında dönen ortak gövde")
+// Tüm hata cevapları (400/401/403/404/405/500) bu tek formatta döner; Swagger'daki şema da bu.
+@Schema(description = "Hata durumlarında (400/401/403/404/405/500) ve login hatalarında dönen ortak gövde")
 @JsonInclude(JsonInclude.Include.NON_NULL)   // errors yalnızca doğrulama hatasında görünsün
 public record ErrorResponse(
         @Schema(example = "2026-11-23T09:00:00Z") Instant timestamp,

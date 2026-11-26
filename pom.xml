@@ -11,21 +11,8 @@
 	<groupId>com.yusuf</groupId>
 	<artifactId>jwt-demo</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+	<name>violation-api</name>
+	<description>JWT korumalı, rol tabanlı Violation API (Spring Boot 4 + Spring Security 7)</description>
 	<properties>
 		<java.version>25</java.version>
 	</properties>
@@ -76,6 +63,19 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Testler kendi geçici PostgreSQL container'ını açar/kapatır: docker compose gerekmez,
+		     sadece Docker çalışıyor olmalı. @ServiceConnection bağlantı ayarlarını otomatik yapar. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-postgresql</artifactId>
 			<scope>test</scope>
 		</dependency>
 

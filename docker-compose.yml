@@ -15,7 +15,8 @@ services:
       POSTGRES_PASSWORD: jwtdemo
     ports:
       # host:container. Host'ta 5433: makinede kurulu yerel bir PostgreSQL 5432'yi kullanıyorsa çakışmasın.
-      - "5433:5432"
+      # 127.0.0.1: port sadece bu bilgisayardan erişilebilir; ağdaki başkaları demo parolasıyla bağlanamaz.
+      - "127.0.0.1:5433:5432"
     volumes:
       # Named volume: veriler container'ın içinde değil, Docker'ın yönettiği "pgdata"
       # volume'unda durur. Container silinip yeniden oluşturulsa da veri kaybolmaz.
