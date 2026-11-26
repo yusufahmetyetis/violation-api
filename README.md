@@ -96,6 +96,22 @@ Hatalar tek formatta döner (`ErrorResponse`): **400** eksik/hatalı alan (`erro
 - `istekler.http`: tam test seti, IntelliJ'de *Run All* ile ✔/✘ sonuçları görünür. Eklediği kaydı kendisi sildiği için kalıcı veritabanında tekrar tekrar çalıştırılabilir.
 - Veriyi görmek: `docker exec -it violation-db psql -U jwtdemo -c "SELECT * FROM violations;"`
 
-## Yalnızca demo için olanlar
+## Demo sınırları
 
-Gerçek bir projede şunlar farklı olmalı: JWT secret ve DB parolası `application.yaml` / `docker-compose.yml` yerine ortam değişkeninden/Vault'tan okunur; Swagger UI ve `/v3/api-docs` ya kapatılır ya da yetkiye bağlanır; 401 cevabında token hatasının ayrıntısı verilmez.
+Bu proje bir öğrenme demosu. Aşağıdakiler bilinçli olarak kapsam dışında bırakıldı. Gerçek bir projede her biri ele alınmalı.
+
+**Gizli bilgiler ve ortam ayarları**
+- JWT secret ve DB parolası `application.yaml` / `docker-compose.yml` içinde düz yazılı. Gerçekte ortam değişkeninden ya da bir secret yöneticisinden (Vault vb.) okunur. Uygulama açılırken sadece secret'ın en az 32 byte olup olmadığı kontrol ediliyor.
+- Swagger UI ve `/v3/api-docs` herkese açık. `show-sql: true` sabit. 401 cevabında token hatasının ayrıntısı veriliyor. Bunların hepsi bir `prod` profiliyle kapatılmalı.
+
+**Token yaşam döngüsü**
+- **Logout yok.** Token süresi dolana kadar (15 dk) geçerli kalır.
+- Token, rolleri ve hesabın aktif olup olmadığını üretildiği andaki haliyle taşır. Admin bir kullanıcının rolünü alsa ya da hesabını pasifleştirse bile o kullanıcının elindeki token süresi dolana kadar çalışmaya devam eder.
+- Refresh token yok. Süre dolunca kullanıcı tekrar login olur.
+
+**Kötüye kullanım koruması**
+- Login'de hız sınırı ya da hesap kilitleme yok, yani brute-force denemelerine açık. Demo parolaları (`admin123` vb.) bilerek basit tutuldu.
+
+**Ölçeklenme**
+- Liste endpoint'lerinde sayfalama yok. `GET /api/violations` bütün tabloyu döner.
+- `GET /api/admin/users` her kullanıcının rolleri için ayrı bir sorgu çalıştırıyor (N+1). Az kullanıcıyla sorun değil, ama gerçek veride tek bir join sorgusu gerekir.

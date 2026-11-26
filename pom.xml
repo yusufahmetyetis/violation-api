@@ -11,21 +11,8 @@
 	<groupId>com.yusuf</groupId>
 	<artifactId>jwt-demo</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+	<name>violation-api</name>
+	<description>JWT korumalı, rol tabanlı Violation API (Spring Boot 4 + Spring Security 7)</description>
 	<properties>
 		<java.version>25</java.version>
 	</properties>

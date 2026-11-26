@@ -22,7 +22,14 @@ public class JwtConfig {
     private final SecretKey key;
 
     public JwtConfig(@Value("${jwt.secret}") String secret) {
-        this.key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
+        // HS256 en az 256 bit (32 byte) anahtar ister. Kontrol burada olmazsa kısa secret
+        // uygulama açılırken değil, ilk login'de token basılırken patlar.
+        if (bytes.length < 32) {
+            throw new IllegalStateException(
+                    "jwt.secret en az 32 byte olmalı (HS256), şu an " + bytes.length + " byte");
+        }
+        this.key = new SecretKeySpec(bytes, "HmacSHA256");
     }
 
     // Token BASAN: login'de kullanacağız
