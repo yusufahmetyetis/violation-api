@@ -66,6 +66,19 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Testler kendi geçici PostgreSQL container'ını açar/kapatır: docker compose gerekmez,
+		     sadece Docker çalışıyor olmalı. @ServiceConnection bağlantı ayarlarını otomatik yapar. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>

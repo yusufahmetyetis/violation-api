@@ -50,8 +50,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> typeMismatch(MethodArgumentTypeMismatchException e,
                                                       HttpServletRequest request) {
-        return ResponseEntity.badRequest().body(ErrorResponse.of(400, "Bad Request",
-                "'" + e.getName() + "' için geçersiz değer: " + e.getValue(), request.getRequestURI()));
+        // Gönderilen değeri mesaja geri yazmıyoruz: kullanıcı girdisini cevaba yansıtmak gereksiz risk
+        Class<?> required = e.getRequiredType();
+        String message = required != null
+                ? "'" + e.getName() + "' " + required.getSimpleName() + " tipinde olmalı"
+                : "'" + e.getName() + "' için geçersiz değer";
+        return ResponseEntity.badRequest().body(ErrorResponse.of(400, "Bad Request", message, request.getRequestURI()));
     }
 
     // Olmayan adres → 404, adres var ama metot yanlış (ör. PUT) → 405
@@ -77,9 +81,11 @@ public class ApiExceptionHandler {
         if (e instanceof org.springframework.web.ErrorResponse springError) {
             HttpStatusCode code = springError.getStatusCode();
             HttpStatus status = HttpStatus.resolve(code.value());
-            return ResponseEntity.status(code).body(ErrorResponse.of(code.value(),
-                    status != null ? status.getReasonPhrase() : "Error",
-                    springError.getBody().getDetail(), request.getRequestURI()));
+            String reason = status != null ? status.getReasonPhrase() : "Error";
+            String detail = springError.getBody().getDetail();
+            // detail null olabilir; ErrorResponse null alanları yazmadığı için message hiç görünmezdi
+            return ResponseEntity.status(code).body(ErrorResponse.of(code.value(), reason,
+                    detail != null ? detail : reason, request.getRequestURI()));
         }
         log.error("Beklenmeyen hata: {} {}", request.getMethod(), request.getRequestURI(), e);
         return ResponseEntity.internalServerError().body(ErrorResponse.of(500, "Internal Server Error",

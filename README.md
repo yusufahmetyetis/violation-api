@@ -43,10 +43,24 @@ Tablolar `src/main/resources/db/migration` altındaki dosyalarla kurulur:
 
 - `V1__create_tables.sql`: tablolar
 - `V2__insert_demo_data.sql`: demo kullanıcılar ve ihlaller
+- `V3__normalize_plates.sql`: mevcut plakaları uygulamanın kuralına getirir (boşluksuz, büyük harf)
 
 Flyway hangi dosyaların çalıştığını DB'deki `flyway_schema_history` tablosunda tutar ve her açılışta sadece **yeni** dosyaları çalıştırır.
 
-**Kural:** Çalışmış bir migration dosyası değiştirilmez (Flyway checksum'ı tutar, değişirse uygulama açılmaz). Değişiklik için yeni dosya yazılır, ör. `V3__add_email_to_users.sql`. Hibernate `ddl-auto: validate` ile çalışır: entity'ler tablolarla uyuşmazsa uygulama açılışta hata verir.
+**Kural:** Çalışmış bir migration dosyası değiştirilmez (Flyway checksum'ı tutar, değişirse uygulama açılmaz). Değişiklik için yeni dosya yazılır, ör. `V4__add_email_to_users.sql`. Hibernate `ddl-auto: validate` ile çalışır: entity'ler tablolarla uyuşmazsa uygulama açılışta hata verir.
+
+## Testler
+
+```bash
+./mvnw test
+```
+
+Sadece **Docker'ın çalışıyor olması** yeterli. `docker compose up` gerekmez. Testler Testcontainers ile kendi geçici PostgreSQL container'larını açar, Flyway migration'larını uygular ve iş bitince container'ı siler. Compose'daki veritabanına (5433) dokunmazlar.
+
+- `SecurityIntegrationTests`: gerçek login → gerçek JWT → gerçek veritabanı. Rol matrisini, sahipliği (USER başkasının kaydına 403 alır), pasif hesabı, süresi dolmuş token'ı, yanlış issuer'ı, plaka normalizasyonunu ve hata formatını test eder.
+- `PlateNormalizationTests`: plaka kuralı için birim testleri (Türkçe locale dahil).
+
+GitHub'da her push'ta ve PR'da aynı testler otomatik olarak çalışır (`.github/workflows/ci.yml`).
 
 ## API'yi başka bir geliştirici nasıl kullanır?
 
