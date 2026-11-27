@@ -35,7 +35,8 @@ public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {
             "/error",
             "/api/public/**",
-            "/auth/**",
+            "/auth/login",             // /auth/** DEĞİL: /auth/logout token ister ve token'ı okuyabilmeli
+                                       // (bu listedeki yollarda Bearer header'ı yok sayılıyor, aşağıya bakın)
             "/v3/api-docs*",           // /v3/api-docs ve /v3/api-docs.yaml (sözleşme dosyası)
             "/v3/api-docs/**",
             "/swagger-ui/**",

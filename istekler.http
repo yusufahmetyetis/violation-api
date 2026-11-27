@@ -7,7 +7,7 @@
 #     Services panelinde ✔ / ✘ olarak görünür.
 #   - Token süresi 15 dk. Süre dolarsa 0) HAZIRLIK bölümünü tekrar çalıştır.
 #
-#  Kullanıcılar (data.sql):
+#  Kullanıcılar (db/migration/V2__insert_demo_data.sql):
 #   admin    / admin123     → ADMIN
 #   operator / operator123  → OPERATOR
 #   user     / user123      → USER  (plaka 34A0261 → ihlal 1 ve 4)
@@ -290,3 +290,53 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqd3QtZGVtbyIsInN1YiI6InVzZ
     client.assert(response.status === 200, "status: " + response.status);
     client.assert(response.body.accessToken, "token yok");
 }); %}
+
+
+###############################################################################
+# 7) LOGOUT: token kara listeye alınır (revoked_tokens tablosu)
+#  Yukarıdaki adminToken/operatorToken/userToken'ı bozmamak için ayrı bir token kullanılır.
+###############################################################################
+
+### [14a] Logout için ayrı bir operator token'ı al → 200
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"username": "operator", "password": "operator123"}
+
+> {%
+    client.test("200 + token", () => client.assert(response.status === 200, "status: " + response.status));
+    client.global.set("logoutToken", response.body.accessToken);
+%}
+
+### [14b] Bu token ile liste → 200 (henüz geçerli)
+GET http://localhost:8080/api/violations
+Authorization: Bearer {{logoutToken}}
+
+> {% client.test("200", () => client.assert(response.status === 200, "status: " + response.status)); %}
+
+### [14c] Logout → 204
+POST http://localhost:8080/auth/logout
+Authorization: Bearer {{logoutToken}}
+
+> {% client.test("204", () => client.assert(response.status === 204, "status: " + response.status)); %}
+
+### [14d] Aynı token ile liste → 401 "Token geçersiz: Token iptal edilmiş"
+#  Token'ın imzası ve süresi hâlâ geçerli; onu reddeden tek şey kara liste.
+GET http://localhost:8080/api/violations
+Authorization: Bearer {{logoutToken}}
+
+> {% client.test("401 + iptal mesajı", () => {
+    client.assert(response.status === 401, "status: " + response.status);
+    client.assert(response.body.message.includes("iptal"), "message: " + response.body.message);
+}); %}
+
+### [14e] Diğer operator token'ı etkilenmedi → 200
+GET http://localhost:8080/api/violations
+Authorization: Bearer {{operatorToken}}
+
+> {% client.test("200", () => client.assert(response.status === 200, "status: " + response.status)); %}
+
+### [14f] Token'sız logout → 401
+POST http://localhost:8080/auth/logout
+
+> {% client.test("401", () => client.assert(response.status === 401, "status: " + response.status)); %}

@@ -1,9 +1,11 @@
 package com.yusuf.jwt_demo.config;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.yusuf.jwt_demo.auth.RevokedTokenValidator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -42,13 +44,17 @@ public class JwtConfig {
         return new NimbusJwtEncoder(new ImmutableSecret<>(key));
     }
 
-    // Token OKUYAN: her istekte imzayı, süreyi (exp/nbf) ve issuer'ı (iss) kontrol eder.
-    // Varsayılan decoder sadece imza ve süreye bakar; aynı secret'ı paylaşan başka bir sistemin
-    // bastığı token'ı da kabul ederdi. createDefaultWithIssuer = süre kontrolü + "iss mutlaka jwt-demo".
+    // Token OKUYAN: her istekte sırayla kontrol eder:
+    //  1. imza (HS256, bizim secret'ımız)
+    //  2. süre (exp/nbf) ve issuer (iss mutlaka jwt-demo). Varsayılan decoder issuer'a bakmaz;
+    //     aynı secret'ı paylaşan başka bir sistemin bastığı token'ı da kabul ederdi.
+    //  3. kara liste: logout ile iptal edilmiş mi? (RevokedTokenValidator, DB'deki revoked_tokens)
     @Bean
-    JwtDecoder jwtDecoder() {
+    JwtDecoder jwtDecoder(RevokedTokenValidator revokedTokenValidator) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
-        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(ISSUER));
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefaultWithIssuer(ISSUER),
+                revokedTokenValidator));
         return decoder;
     }
 

@@ -44,10 +44,11 @@ Tablolar `src/main/resources/db/migration` altındaki dosyalarla kurulur:
 - `V1__create_tables.sql`: tablolar
 - `V2__insert_demo_data.sql`: demo kullanıcılar ve ihlaller
 - `V3__normalize_plates.sql`: mevcut plakaları uygulamanın kuralına getirir (boşluksuz, büyük harf)
+- `V4__create_revoked_tokens.sql`: logout ile iptal edilen token'ların kara listesi
 
 Flyway hangi dosyaların çalıştığını DB'deki `flyway_schema_history` tablosunda tutar ve her açılışta sadece **yeni** dosyaları çalıştırır.
 
-**Kural:** Çalışmış bir migration dosyası değiştirilmez (Flyway checksum'ı tutar, değişirse uygulama açılmaz). Değişiklik için yeni dosya yazılır, ör. `V4__add_email_to_users.sql`. Hibernate `ddl-auto: validate` ile çalışır: entity'ler tablolarla uyuşmazsa uygulama açılışta hata verir.
+**Kural:** Çalışmış bir migration dosyası değiştirilmez (Flyway checksum'ı tutar, değişirse uygulama açılmaz). Değişiklik için yeni dosya yazılır, ör. `V5__add_email_to_users.sql`. Hibernate `ddl-auto: validate` ile çalışır: entity'ler tablolarla uyuşmazsa uygulama açılışta hata verir.
 
 ## Testler
 
@@ -58,6 +59,7 @@ Flyway hangi dosyaların çalıştığını DB'deki `flyway_schema_history` tabl
 Sadece **Docker'ın çalışıyor olması** yeterli. `docker compose up` gerekmez. Testler Testcontainers ile kendi geçici PostgreSQL container'larını açar, Flyway migration'larını uygular ve iş bitince container'ı siler. Compose'daki veritabanına (5433) dokunmazlar.
 
 - `SecurityIntegrationTests`: gerçek login → gerçek JWT → gerçek veritabanı. Rol matrisini, sahipliği (USER başkasının kaydına 403 alır), pasif hesabı, süresi dolmuş token'ı, yanlış issuer'ı, plaka normalizasyonunu ve hata formatını test eder.
+- `LogoutIntegrationTests`: logout → 204, iptal edilmiş token → 401, tekrar login olunca yeni token çalışır, diğer kullanıcılar ve aynı kullanıcının başka token'ları etkilenmez, süresi dolmuş kayıtlar temizlenir.
 - `PlateNormalizationTests`: plaka kuralı için birim testleri (Türkçe locale dahil).
 
 GitHub'da her push'ta ve PR'da aynı testler otomatik olarak çalışır (`.github/workflows/ci.yml`).
@@ -94,6 +96,7 @@ Swagger dokümanı koddaki anotasyonlardan üretilir; kod değişince doküman d
 | Metot | Yol | Rol |
 |---|---|---|
 | POST | `/auth/login` | herkes |
+| POST | `/auth/logout` | token sahibi (her rol) |
 | GET | `/api/public/health` | herkes |
 | GET | `/api/violations` | OPERATOR, ADMIN |
 | POST | `/api/violations` | ADMIN |
@@ -102,7 +105,18 @@ Swagger dokümanı koddaki anotasyonlardan üretilir; kod değişince doküman d
 | GET | `/api/violations/mine` | USER |
 | GET | `/api/admin/users` | ADMIN |
 
-Hatalar tek formatta döner (`ErrorResponse`): **400** eksik/hatalı alan (`errors` alanında ayrıntı), **401** token yok/geçersiz/süresi dolmuş, **403** rol yetersiz ya da kayıt size ait değil.
+Hatalar tek formatta döner (`ErrorResponse`): **400** eksik/hatalı alan (`errors` alanında ayrıntı), **401** token yok/geçersiz/süresi dolmuş/iptal edilmiş, **403** rol yetersiz ya da kayıt size ait değil.
+
+### Logout nasıl çalışır?
+
+JWT stateless'tır: sunucu verdiği token'ı hatırlamaz, süresi dolana kadar kabul eder. Logout'u gerçek kılmak için:
+
+1. `POST /auth/logout` token'ın `jti` (benzersiz kimlik) değerini PostgreSQL'deki `revoked_tokens` tablosuna yazar (`V4__create_revoked_tokens.sql`). Cevap **204** olur.
+2. Her istekte `JwtDecoder` imza, süre ve issuer kontrolünden sonra `RevokedTokenValidator`'ı da çalıştırır. Kara listedeki token **401 "Token iptal edilmiş"** alır.
+3. Liste veritabanında tutulduğu için uygulama yeniden başlasa da iptaller geçerli kalır.
+4. Her logout'ta süresi dolmuş kayıtlar silinir. Süresi dolan token zaten reddedildiği için onu listede tutmaya gerek yoktur, tablo da büyümez.
+
+Logout **sadece gönderilen token'ı** iptal eder. Kullanıcının başka cihazlardaki token'ları ve diğer kullanıcılar etkilenmez.
 
 ## Elle test
 
@@ -119,8 +133,9 @@ Bu proje bir öğrenme demosu. Aşağıdakiler bilinçli olarak kapsam dışınd
 - Swagger UI ve `/v3/api-docs` herkese açık. `show-sql: true` sabit. 401 cevabında token hatasının ayrıntısı veriliyor. Bunların hepsi bir `prod` profiliyle kapatılmalı.
 
 **Token yaşam döngüsü**
-- **Logout yok.** Token süresi dolana kadar (15 dk) geçerli kalır.
-- Token, rolleri ve hesabın aktif olup olmadığını üretildiği andaki haliyle taşır. Admin bir kullanıcının rolünü alsa ya da hesabını pasifleştirse bile o kullanıcının elindeki token süresi dolana kadar çalışmaya devam eder.
+- **Logout sadece o token'ı iptal eder.** "Tüm cihazlardan çıkış" yok.
+- Token, rolleri ve hesabın aktif olup olmadığını üretildiği andaki haliyle taşır. Admin bir kullanıcının rolünü alsa ya da hesabını pasifleştirse bile o kullanıcının elindeki token süresi dolana kadar (15 dk) çalışmaya devam eder. Logout bunu çözmez. Çözüm için kullanıcı bazında bir `token_version` gerekir.
+- Kara liste kontrolü her istekte bir veritabanı sorgusu yapar (primary key üzerinden, hızlı). Çok yüksek trafikte bunun yerine Redis gibi bir önbellek tercih edilir.
 - Refresh token yok. Süre dolunca kullanıcı tekrar login olur.
 
 **Kötüye kullanım koruması**
