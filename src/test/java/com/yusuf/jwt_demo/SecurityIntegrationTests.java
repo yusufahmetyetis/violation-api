@@ -4,16 +4,12 @@ import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.Instant;
@@ -36,29 +32,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Demo verisi V2__insert_demo_data.sql'den gelir: user'ın plakası 34A0261 (ihlal 1 ve 4),
  * ihlal 2 başkasına (34B0102) ait.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestcontainersConfig.class)
-class SecurityIntegrationTests {
+class SecurityIntegrationTests extends IntegrationTestSupport {
 
-    @Autowired MockMvc mvc;
     @Autowired JwtEncoder jwtEncoder;
 
     // ---------------------------------------------------------------- yardımcılar
-
-    private String login(String username, String password) throws Exception {
-        String body = mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"%s\",\"password\":\"%s\"}".formatted(username, password)))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        return JsonPath.read(body, "$.accessToken");
-    }
-
-    private String admin() throws Exception { return login("admin", "admin123"); }
-    private String operator() throws Exception { return login("operator", "operator123"); }
-    private String user() throws Exception { return login("user", "user123"); }
-
-    private static String bearer(String token) { return "Bearer " + token; }
 
     /** Uygulamanın kendi anahtarıyla, istediğimiz claim'lerle token üretir (süresi dolmuş, yanlış issuer...). */
     private String customToken(String issuer, Instant expiresAt) {

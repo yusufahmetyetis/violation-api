@@ -36,7 +36,9 @@ import java.util.Map;
                         **Sözleşme dosyası:** `/v3/api-docs` (JSON) veya `/v3/api-docs.yaml`. Postman'e import edilebilir,
                         openapi-generator ile istemci kodu üretilebilir.
 
-                        Tüm hatalar `ErrorResponse` formatında döner: 400 eksik/hatalı alan, 401 token yok/geçersiz/süresi dolmuş,
+                        **Çıkış:** **Auth → POST /auth/logout** token'ı iptal eder; sonrasında o token 401 alır.
+
+                        Tüm hatalar `ErrorResponse` formatında döner: 400 eksik/hatalı alan, 401 token yok/geçersiz/süresi dolmuş/iptal edilmiş,
                         403 rol yetersiz veya kayıt size ait değil.
                         """),
         security = @SecurityRequirement(name = "bearerAuth")   // varsayılan: her endpoint token ister

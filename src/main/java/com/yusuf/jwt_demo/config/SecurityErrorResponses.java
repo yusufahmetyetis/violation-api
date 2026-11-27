@@ -3,6 +3,8 @@ package com.yusuf.jwt_demo.config;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
@@ -28,10 +30,25 @@ public class SecurityErrorResponses {
         return (request, response, ex) -> {
             bearer.commence(request, response, ex);   // WWW-Authenticate header'ı korunsun
             String message = (ex instanceof InvalidBearerTokenException)
-                    ? "Token geçersiz: " + ex.getMessage()   // DEMO: gerçek projede ayrıntı verilmez
+                    ? "Token geçersiz: " + reason(ex)   // DEMO: gerçek projede ayrıntı verilmez
                     : "Kimlik doğrulama gerekli";
             write(response, 401, "Unauthorized", message, request.getRequestURI());
         };
+    }
+
+    // Spring Security 7 dıştaki exception'a genel "Invalid token" yazar; validator'ların kendi açıklaması
+    // ("Token iptal edilmiş", süre/issuer hatası) zincirin içindeki JwtValidationException'da durur.
+    private static String reason(Throwable ex) {
+        for (Throwable t = ex; t != null; t = t.getCause()) {
+            if (t instanceof JwtValidationException invalid) {
+                for (OAuth2Error error : invalid.getErrors()) {
+                    if (error.getDescription() != null) {
+                        return error.getDescription();
+                    }
+                }
+            }
+        }
+        return ex.getMessage();
     }
 
     // 403: kimlik var, yetki yok (URL kuralı veya @PreAuthorize)
